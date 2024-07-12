@@ -116,6 +116,8 @@ write_feather(water_raw,
 
 # Frac records ------------------------------------------------------------
 
+# This should take a moment! 
+
 file_list <- list.files(path = here('frac'), pattern = '^FracFocusRegistry_\\d+.csv', full.names = TRUE)
 
 frac_raw <- map(file_list, 
@@ -167,11 +169,7 @@ disc <- disc_raw %>%
   distinct(api_number, job_start_date, .keep_all = T) %>% 
   mutate(
     across(c(job_start_date,job_end_date), mdy_hms),
-    job_diff = difftime(job_end_date,job_start_date, units = 'days'),
-    jd = as.numeric(job_diff),
-    jd_fix = case_when(
-      jd >= 0 ~ TRUE,
-      jd < 0 ~ FALSE)
+    job_diff = difftime(job_end_date,job_start_date, units = 'days')
   )
 
 
@@ -191,12 +189,17 @@ disc <- disc_raw %>%
     distinct()
 }
 
+#Good data!
 disc <- disc %>% 
   filter(disclosure_id %ni% disc_bad$disclosure_id)
 
+rm(disc_bad, disc_raw)
+
+### Plot --------------------------------------------------------------------
+
 disc %>% 
   mutate(year = year(job_start_date), .keep = 'unused') %>% 
-  filter(., year > 2010) %>% 
+  filter(., year >= 2010) %>% #Removes suspect data
   group_by(state_name, year) %>%
   reframe(., count = n()) %>% 
   print(n = Inf) %>% 
@@ -208,6 +211,29 @@ disc %>%
   scale_fill_viridis_d(option = "viridis", direction = 1) +
   theme_classic() +
   facet_wrap(vars(state_name))
-  
+
+## Frac --------------------------------------------------------------------
+
+frac <- frac_raw %>% 
+  distinct(api_number, job_start_date, .keep_all = T) %>%
+  mutate(
+    across(c(job_start_date,job_end_date), mdy_hms),
+    job_diff = difftime(job_end_date,job_start_date, units = 'days'),
+    year = year(job_start_date)
+  ) %>% 
+  filter(disclosure_id %in% disc$disclosure_id)
+
+tx <- frac %>% 
+  filter(., year >= 2010 & state_name == 'Texas') %>% 
+  filter(!is.na(ingredient_common_name))
+
+tx %>%
+  group_by(ingredient_common_name) %>% 
+  reframe(count = n(), median_pct = median(percent_hf_job, na.rm = T)) %>% 
+  arrange(desc(count), desc(median_pct)) %>%
+  print(n = 30)
+
+
+
 
 
