@@ -8,6 +8,10 @@
   library(esquisse)
 }
 
+#Custom func------
+
+`%ni%` <- Negate(`%in%`)
+
 #Downloads the FF db----
 temp <- tempfile()
 options(timeout = 300)
@@ -171,6 +175,39 @@ disc <- disc_raw %>%
   )
 
 
+### Bad data ----------------------------------------------------------------
 
+{
+  disc_bad <- list()
+  
+  disc_bad$job_diff <- disc %>%
+    filter(job_diff < 0) #removes bad dates
+  
+  disc_bad$date <- disc %>%
+    filter(job_start_date > Sys.Date()) #removes future jobs
+  
+  disc_bad <- disc_bad %>%
+    list_rbind(names_to = 'type') %>% 
+    distinct()
+}
+
+disc <- disc %>% 
+  filter(disclosure_id %ni% disc_bad$disclosure_id)
+
+disc %>% 
+  mutate(year = year(job_start_date), .keep = 'unused') %>% 
+  filter(., year > 2010) %>% 
+  group_by(state_name, year) %>%
+  reframe(., count = n()) %>% 
+  print(n = Inf) %>% 
+  ggplot(.) +
+  aes(x = year, y = count, color = state_name) +
+  geom_point() +
+  #scale_y_log10() +
+  geom_smooth(se = FALSE) +
+  scale_fill_viridis_d(option = "viridis", direction = 1) +
+  theme_classic() +
+  facet_wrap(vars(state_name))
+  
 
 
