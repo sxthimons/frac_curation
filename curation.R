@@ -6,160 +6,188 @@
   library(janitor)
   library(feather)
   library(esquisse)
+  library(skimr)
+  library(timetk)
 }
+
 
 #Custom func------
 
 `%ni%` <- Negate(`%in%`)
 
-#Downloads the FF db----
-temp <- tempfile()
-options(timeout = 300)
-download.file('https://www.fracfocusdata.org/digitaldownload/FracFocusCSV.zip', temp)
+## for printing of colnames for selection
+prettylist <- function(x){
+  paste0("'",x, "',","\n") %>% cat()
+}
 
-if(dir.exists(here('temp'))){
-  message('Temp directory found!')
-  unlink(here('temp'), recursive = TRUE)
-  message('Created temp dir')
-  dir.create(here('temp'))
+skim_count <- skim_with(numeric = sfl(n = length, median = ~ median(.x, na.rm = T)))
+
+# Test for previous work --------------------------------------------------
+
+fl <- list.files(pattern = 'disc_raw_')
+
+if(file.exists(fl) != TRUE){
+  
+  #Downloads the FF db----
+  temp <- tempfile()
+  options(timeout = 300)
+  download.file('https://www.fracfocusdata.org/digitaldownload/FracFocusCSV.zip', temp)
+  
+  if(dir.exists(here('temp'))){
+    message('Temp directory found!')
+    unlink(here('temp'), recursive = TRUE)
+    message('Created temp dir')
+    dir.create(here('temp'))
+  }else{
+    message('Created temp dir')
+    dir.create(here('temp'))
+  }
+  
+  unzip(temp, exdir = here('temp'))
+  
+  # creates folders for the files----
+  
+  {
+    
+    ##Disclosure----
+    if(dir.exists(here('disc'))){
+      unlink(here('disc'), recursive = TRUE)
+      dir.create(here('disc'))
+    }else{
+      dir.create(here('disc'))
+    }
+    
+    files_to_copy <- list.files(path = here('temp'), pattern = 'DisclosureList_[[:digit:]].csv$', full.names = TRUE)
+    file.copy(files_to_copy, here('disc'))
+    file.remove(files_to_copy)
+    
+    ##Water-----
+    if(dir.exists(here('water'))){
+      unlink(here('water'), recursive = TRUE)
+      dir.create(here('water'))
+    }else{
+      dir.create(here('water'))
+    }
+    
+    files_to_copy <- list.files(path = here('temp'), pattern = 'WaterSource_[[:digit:]].csv$', full.names = TRUE)
+    file.copy(files_to_copy, here('water'))
+    file.remove(files_to_copy)
+    
+    ##readme----
+    if(dir.exists(here('readme'))){
+      unlink(here('readme'), recursive = TRUE)
+      dir.create(here('readme'))
+    }else{
+      dir.create(here('readme'))
+    }
+    
+    files_to_copy <- list.files(path = here('temp'), pattern = 'readme csv.txt$', full.names = TRUE)
+    file.copy(files_to_copy, here('readme'))
+    file.remove(files_to_copy)
+    
+    ##frac records----
+    if(dir.exists(here('frac'))){
+      unlink(here('frac'), recursive = TRUE)
+      dir.create(here('frac'))
+    }else{
+      dir.create(here('frac'))
+    }
+    
+    files_to_copy <- list.files(path = here('temp'), pattern = 'FracFocusRegistry_\\d+.csv', full.names = TRUE)
+    file.copy(files_to_copy, here('frac'))
+    file.remove(files_to_copy)
+    
+    rm(files_to_copy)
+    rm(temp)
+    unlink(here('temp'), recursive = T)
+  }
+  
+  
+  # Water -------------------------------------------------------------------
+  
+  file_list <- list.files(path = here('water'), pattern = '^WaterSource_\\d+.csv', full.names = TRUE)
+  
+  water_raw <- map(file_list, 
+                   ~readr::read_csv(.x,
+                                    col_types = cols(
+                                      APINumber = col_character(),
+                                      ClaimantCompany = col_character()
+                                    ),
+                                    na = c("", "NA", " ")),
+                   .id = "id",
+                   .progress = TRUE
+  ) %>%
+    list_rbind() %>%
+    clean_names() %>% 
+    as_tibble()
+  
+  write_feather(water_raw,
+                path = paste0(here(), '/water_raw','_', Sys.Date())
+  )
+  
+  # water_raw %>%
+  #   group_by(state_name, description) %>%
+  #   reframe(., n()) %>% 
+  #   print(n = Inf)
+  
+  # Frac records ------------------------------------------------------------
+  
+  # This should take a moment! 
+  
+  file_list <- list.files(path = here('frac'), pattern = '^FracFocusRegistry_\\d+.csv', full.names = TRUE)
+  
+  frac_raw <- map(file_list, 
+                  ~readr::read_csv(.x,
+                                   col_types = cols(
+                                     APINumber = col_character(),
+                                     ClaimantCompany = col_character()
+                                   ),
+                                   na = c("", "NA", " ")),
+                  .id = "id",
+                  .progress = TRUE
+  ) %>%
+    list_rbind() %>%
+    clean_names() %>% 
+    as_tibble()
+  
+  write_feather(frac_raw,
+                path = paste0(here(), '/frac_raw','_', Sys.Date())
+  )
+  
+  # Disclosure --------------------------------------------------------------------
+  
+  file_list <- list.files(path = here('disc'), pattern = '^DisclosureList_\\d+.csv', full.names = TRUE)
+  
+  disc_raw <- map(file_list, 
+                  ~readr::read_csv(.x,
+                                   col_types = cols(
+                                     APINumber = col_character()
+                                   ),
+                                   na = c("", "NA", " ")),
+                  .id = "id",
+                  .progress = TRUE
+  ) %>%
+    list_rbind() %>%
+    clean_names() %>% 
+    as_tibble()
+  
+  write_feather(disc_raw,
+                path = paste0(here(), '/disc_raw','_', Sys.Date())
+  )
+  
+  rm(file_list)
+  
 }else{
-  message('Created temp dir')
-  dir.create(here('temp'))
+
+### ELSE --------------------------------------------------------------------
+
+  disc_raw <- read_feather(list.files(pattern = 'disc_raw'))
+  frac_raw <- read_feather(list.files(pattern = 'frac_raw'))
+  water_raw <- read_feather(list.files(pattern = 'water_raw'))
+  
 }
 
-unzip(temp, exdir = here('temp'))
-
-# creates folders for the files----
-
-{
-  
-  ##Disclosure----
-  if(dir.exists(here('disc'))){
-    unlink(here('disc'), recursive = TRUE)
-    dir.create(here('disc'))
-  }else{
-    dir.create(here('disc'))
-  }
-  
-  files_to_copy <- list.files(path = here('temp'), pattern = 'DisclosureList_[[:digit:]].csv$', full.names = TRUE)
-  file.copy(files_to_copy, here('disc'))
-  file.remove(files_to_copy)
-  
-  ##Water-----
-  if(dir.exists(here('water'))){
-    unlink(here('water'), recursive = TRUE)
-    dir.create(here('water'))
-  }else{
-    dir.create(here('water'))
-  }
-  
-  files_to_copy <- list.files(path = here('temp'), pattern = 'WaterSource_[[:digit:]].csv$', full.names = TRUE)
-  file.copy(files_to_copy, here('water'))
-  file.remove(files_to_copy)
-  
-  ##readme----
-  if(dir.exists(here('readme'))){
-    unlink(here('readme'), recursive = TRUE)
-    dir.create(here('readme'))
-  }else{
-    dir.create(here('readme'))
-  }
-  
-  files_to_copy <- list.files(path = here('temp'), pattern = 'readme csv.txt$', full.names = TRUE)
-  file.copy(files_to_copy, here('readme'))
-  file.remove(files_to_copy)
-  
-  ##frac records----
-  if(dir.exists(here('frac'))){
-    unlink(here('frac'), recursive = TRUE)
-    dir.create(here('frac'))
-  }else{
-    dir.create(here('frac'))
-  }
-  
-  files_to_copy <- list.files(path = here('temp'), pattern = 'FracFocusRegistry_\\d+.csv', full.names = TRUE)
-  file.copy(files_to_copy, here('frac'))
-  file.remove(files_to_copy)
-  
-  rm(files_to_copy)
-  rm(temp)
-  unlink(here('temp'), recursive = T)
-}
-
-
-# Water -------------------------------------------------------------------
-
-file_list <- list.files(path = here('water'), pattern = '^WaterSource_\\d+.csv', full.names = TRUE)
-
-water_raw <- map(file_list, 
-                ~readr::read_csv(.x,
-                                 col_types = cols(
-                                   APINumber = col_character(),
-                                   ClaimantCompany = col_character()
-                                 ),
-                                 na = c("", "NA", " ")),
-                .id = "id",
-                .progress = TRUE
-) %>%
-  list_rbind() %>%
-  clean_names() %>% 
-  as_tibble()
-
-write_feather(water_raw,
-              path = paste0(here(), '/water_raw','_', Sys.Date())
-)
-
-# water_raw %>%
-#   group_by(state_name, description) %>%
-#   reframe(., n()) %>% 
-#   print(n = Inf)
-
-# Frac records ------------------------------------------------------------
-
-# This should take a moment! 
-
-file_list <- list.files(path = here('frac'), pattern = '^FracFocusRegistry_\\d+.csv', full.names = TRUE)
-
-frac_raw <- map(file_list, 
-                ~readr::read_csv(.x,
-                                 col_types = cols(
-                                   APINumber = col_character(),
-                                   ClaimantCompany = col_character()
-                                 ),
-                                 na = c("", "NA", " ")),
-                .id = "id",
-                .progress = TRUE
-) %>%
-  list_rbind() %>%
-  clean_names() %>% 
-  as_tibble()
-
-write_feather(frac_raw,
-              path = paste0(here(), '/frac_raw','_', Sys.Date())
-)
-
-# Disclosure --------------------------------------------------------------------
-
-file_list <- list.files(path = here('disc'), pattern = '^DisclosureList_\\d+.csv', full.names = TRUE)
-
-disc_raw <- map(file_list, 
-                ~readr::read_csv(.x,
-                                 col_types = cols(
-                                   APINumber = col_character()
-                                 ),
-                                 na = c("", "NA", " ")),
-                .id = "id",
-                .progress = TRUE
-) %>%
-  list_rbind() %>%
-  clean_names() %>% 
-  as_tibble()
-
-write_feather(disc_raw,
-              path = paste0(here(), '/disc_raw','_', Sys.Date())
-)
-
-rm(file_list)
+rm(fl)
 
 # Cleaning ----------------------------------------------------------------
 
@@ -202,7 +230,9 @@ disc %>%
   filter(., year >= 2010) %>% #Removes suspect data
   group_by(state_name, year) %>%
   reframe(., count = n()) %>% 
+ 
   print(n = Inf) %>% 
+  
   ggplot(.) +
   aes(x = year, y = count, color = state_name) +
   geom_point() +
@@ -227,13 +257,80 @@ tx <- frac %>%
   filter(., year >= 2010 & state_name == 'Texas') %>% 
   filter(!is.na(ingredient_common_name))
 
-tx %>%
-  group_by(ingredient_common_name) %>% 
-  reframe(count = n(), median_pct = median(percent_hf_job, na.rm = T)) %>% 
-  arrange(desc(count), desc(median_pct)) %>%
-  print(n = 30)
+
+### EDA ---------------------------------------------------------------------
+
+tx_eda <- tx %>%
+  select(
+  #  "disclosure_id",
+  #  "job_start_date",
+  #  "job_end_date",
+  #  "api_number",
+  #  "state_name",
+  #  "county_name",
+  #  "operator_name",
+  #  "well_name",
+  #  "latitude",
+  #  "longitude",
+  #  "projection",
+  #  "tvd",
+  #  "total_base_water_volume",
+  # "total_base_non_water_volume",
+  #  "ff_version",
+  #  "federal_well",
+  #  "indian_well",
+  #  "purpose_id",
+  #  "trade_name",
+  #  "supplier",
+  #  "purpose",
+  #  "ingredients_id",
+  #  "cas_number",
+  #  "ingredient_name",
+    "ingredient_common_name",
+  #  "percent_high_additive",
+    "percent_hf_job",
+  #  "ingredient_comment",
+  #  "ingredient_msds",
+  #  "mass_ingredient",
+  #  "claimant_company",
+  #  "job_diff",
+  #  "year"
+  ) %>% 
+group_by(ingredient_common_name) %>%
+  skim_count() %>% 
+  arrange(desc(numeric.n))
 
 
+### compound ----------------------------------------------------------------
 
+#### ts ----------------------------------------------------------------------
+
+tx %>% 
+  filter(ingredient_common_name == 'Hydrotreated light petroleum distillate') %>%
+  timetk::summarize_by_time(.date_var = job_start_date, 
+                           .by = 'month', 
+                           n = n()) %>% 
+  plot_time_series(., 
+                   .date_var = job_start_date, 
+                   .value = n,
+                   .interactive = TRUE)
+
+#### Seasonal ----------------------------------------------------------------
+
+tx %>% 
+  filter(ingredient_common_name == 'Hydrotreated light petroleum distillate') %>%
+  select(
+    "job_start_date",
+    "ingredient_common_name",
+    "percent_hf_job"
+    ) %>% 
+  timetk::summarize_by_time(.date_var = job_start_date, 
+                            .by = 'month', 
+                            mean_log = mean(-log10(percent_hf_job), na.rm = T))
+  plot_seasonal_diagnostics(., 
+                   .date_var = job_start_date, 
+                   .value = mean_log,
+                   .feature_set = c('month.lbl', 'year'),
+                   .interactive = TRUE)
 
 
