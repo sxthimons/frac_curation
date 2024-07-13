@@ -8,11 +8,13 @@
     'feather',
     'esquisse',
     'skimr',
-    'timetk',
+    'timetk'
     )
   
   new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
   if(length(new.packages)) install.packages(new.packages)
+  
+  rm(list.of.packages, new.packages)
   
   # Packages----
   library(here)
@@ -445,7 +447,11 @@ tx_sf <- tx %>%
   select(ingredient_common_name, year, latitude, longitude) %>% 
   sf::st_as_sf(., coords = c('longitude', 'latitude'), crs = 'EPSG:4269')
 
-mapview(tx_sf, zcol = c('ingredient_common_name', 'year'), burst = FALSE, legend = TRUE)
+mapview(tx_sf, zcol = c(
+  'ingredient_common_name'
+  #,'year'
+  ), burst = FALSE, legend = TRUE)
+
   
   
   
