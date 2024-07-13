@@ -1,5 +1,5 @@
-#Packages----
 {
+#Packages----
   library(here) 
   library(rio) 
   library(tidyverse)
@@ -8,19 +8,19 @@
   library(esquisse)
   library(skimr)
   library(timetk)
+
+  #Custom func------
+  
+  `%ni%` <- Negate(`%in%`)
+  
+  ## for printing of colnames for selection
+  prettylist <- function(x){
+    paste0("'",x, "',","\n") %>% cat()
+  }
+  
+  skim_count <- skim_with(numeric = sfl(n = length, median = ~ median(.x, na.rm = T)))
+  
 }
-
-
-#Custom func------
-
-`%ni%` <- Negate(`%in%`)
-
-## for printing of colnames for selection
-prettylist <- function(x){
-  paste0("'",x, "',","\n") %>% cat()
-}
-
-skim_count <- skim_with(numeric = sfl(n = length, median = ~ median(.x, na.rm = T)))
 
 # Test for previous work --------------------------------------------------
 
@@ -315,6 +315,50 @@ tx %>%
                    .value = n,
                    .interactive = TRUE)
 
+
+##### ts, a few compounds -----------------------------------------------------
+
+tx_eda %>% 
+  select(ingredient_common_name) %>% 
+  as.list() %>% 
+  unlist() %>% 
+  unname() %>% 
+  .[1:4] %>% 
+   map(., ~{
+    message(.x)
+    title = .x
+    tx %>%
+    filter(ingredient_common_name == .x) %>%
+      timetk::summarize_by_time(.date_var = job_start_date,
+                                .by = 'month',
+                                n = n()) %>% 
+      plot_time_series(.,
+                       .title = title,
+                       .date_var = job_start_date,
+                       .value = n,
+                       .interactive = FALSE)
+  })
+
+tx_compounds <- tx_eda %>% 
+  select(ingredient_common_name) %>% 
+  as.list() %>% 
+  unlist() %>% 
+  unname() %>% 
+  .[1:4]
+
+  tx %>%
+    filter(ingredient_common_name %in% tx_compounds) %>%
+    group_by(ingredient_common_name) %>% 
+    timetk::summarize_by_time(.date_var = job_start_date,
+                                .by = 'month',
+                                n = n()) %>% 
+      plot_time_series(.,
+                       .date_var = job_start_date,
+                       .value = n,
+                       .facet_ncol = 2, .facet_scales = "free",
+                       .interactive = TRUE)
+ 
+
 #### Seasonal ----------------------------------------------------------------
 
 tx %>% 
@@ -326,11 +370,12 @@ tx %>%
     ) %>% 
   timetk::summarize_by_time(.date_var = job_start_date, 
                             .by = 'month', 
-                            mean_log = mean(-log10(percent_hf_job), na.rm = T))
+                            val = mean(percent_hf_job, na.rm = T)) %>% 
+  
   plot_seasonal_diagnostics(., 
                    .date_var = job_start_date, 
-                   .value = mean_log,
+                   .value = val,
                    .feature_set = c('month.lbl', 'year'),
                    .interactive = TRUE)
 
-tx 
+
