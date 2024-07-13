@@ -14,8 +14,12 @@ Requires R \> 4.4.1 and the following packages:
 
 -   'feather'
 
+-   'skimr'
+
+-   'timetk'
+
 Optional (but really nice):
 
 -   'esquisse'
 
-Suggested to have packages installed and the files downloaded and read into the environment, or cached into 'feather' files. The frac_raw object should be around \~2.4 GB in size (6.5 M rows).
+Suggested to have packages installed, the files downloaded and read into the environment, or cached into 'feather' files. The frac_raw object should be around \~2.4 GB in size (6.5 M rows).
