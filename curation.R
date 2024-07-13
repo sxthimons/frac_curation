@@ -1,4 +1,19 @@
 {
+  
+  list.of.packages <- c(
+    'here',
+    'rio',
+    'tidyverse',
+    'janitor',
+    'feather',
+    'esquisse',
+    'skimr',
+    'timetk',
+    )
+  
+  new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+  if(length(new.packages)) install.packages(new.packages)
+  
   # Packages----
   library(here)
   library(rio)
@@ -415,3 +430,29 @@ tx %>%
     .feature_set = c("month.lbl", "year"),
     .interactive = TRUE
   )
+
+
+# Mapping -----------------------------------------------------------------
+
+library(sf)
+library(mapview)
+#library(tigris)
+#library(tidycensus)
+
+
+tx_sf <- tx %>% 
+  filter(ingredient_common_name %in% tx_compounds$ingredient_common_name) %>%
+  select(ingredient_common_name, year, latitude, longitude) %>% 
+  sf::st_as_sf(., coords = c('longitude', 'latitude'), crs = 'EPSG:4269')
+
+mapview(tx_sf, zcol = c('ingredient_common_name', 'year'), burst = FALSE, legend = TRUE)
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
