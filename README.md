@@ -2,24 +2,8 @@
 
 ## Repo is currently being worked on for the July 18th event!
 
-Requires R \> 4.4.1 and the following packages:
+Requires R \> 4.4.1 and the packages listed in the `curation.R` script
 
--   'here'
-
--   'rio'
-
--   'tidyverse'
-
--   'janitor'
-
--   'feather'
-
--   'skimr'
-
--   'timetk'
-
-Optional (but really nice):
-
--   'esquisse'
+Lines 1-37 will help install packages + local functions needed.
 
 Suggested to have packages installed, the files downloaded and read into the environment, or cached into 'feather' files. The frac_raw object should be around \~2.4 GB in size (6.5 M rows).
