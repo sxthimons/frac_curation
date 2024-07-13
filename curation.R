@@ -444,15 +444,46 @@ library(mapview)
 
 tx_sf <- tx %>% 
   filter(ingredient_common_name %in% tx_compounds$ingredient_common_name) %>%
-  select(ingredient_common_name, year, latitude, longitude) %>% 
+  select(
+    operator_name,
+    ingredient_common_name,
+    year,
+    latitude,
+    longitude
+    ) %>% 
   sf::st_as_sf(., coords = c('longitude', 'latitude'), crs = 'EPSG:4269')
 
 mapview(tx_sf, zcol = c(
   'ingredient_common_name'
   #,'year'
-  ), burst = FALSE, legend = TRUE)
+  ), 
+  burst = FALSE,
+  legend = TRUE, 
+  popup = TRUE)
 
-  
+#Just operators----
+
+tx_sf <- tx %>% 
+  #filter(ingredient_common_name %in% tx_compounds$ingredient_common_name) %>%
+  filter(!is.na(latitude) & !is.na(longitude)) %>% 
+  select(
+    operator_name,
+    well_name,
+    #ingredient_common_name,
+    year,
+    latitude,
+    longitude
+  ) %>% 
+  distinct(., .keep_all = T) %>% 
+  sf::st_as_sf(., coords = c('longitude', 'latitude'), crs = 'EPSG:4269')
+
+mapview(tx_sf, zcol = c(
+  #'ingredient_common_name'
+  'year'
+), 
+burst = FALSE,
+legend = TRUE, 
+popup = TRUE)  
   
   
   
