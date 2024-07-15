@@ -1,3 +1,4 @@
+# Packages----
 {
   
   list.of.packages <- c(
@@ -9,6 +10,8 @@
     'esquisse',
     'skimr',
     'timetk'
+    #,'sf', #if plotting
+    #'mapview' # if plotting
     )
   
   new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
@@ -16,7 +19,6 @@
   
   rm(list.of.packages, new.packages)
   
-  # Packages----
   library(here)
   library(rio)
   library(tidyverse)
@@ -37,13 +39,12 @@
 
   skim_count <- skim_with(numeric = sfl(n = length, median = ~ median(.x, na.rm = T)))
 }
-
 # Test for previous work --------------------------------------------------
 
 fl <- list.files(pattern = "disc_raw_")
 
-if (file.exists(fl) != TRUE) {
-  # Downloads the FF db----
+if(length(fl) == 0){
+  ## Downloads the FF db----
   temp <- tempfile()
   options(timeout = 300)
   download.file("https://www.fracfocusdata.org/digitaldownload/FracFocusCSV.zip", temp)
@@ -60,7 +61,7 @@ if (file.exists(fl) != TRUE) {
 
   unzip(temp, exdir = here("temp"))
 
-  # creates folders for the files----
+  ## creates folders for the files----
 
   {
     ## Disclosure----
@@ -117,7 +118,7 @@ if (file.exists(fl) != TRUE) {
   }
 
 
-  # Water -------------------------------------------------------------------
+  ### Water -------------------------------------------------------------------
 
   file_list <- list.files(path = here("water"), pattern = "^WaterSource_\\d+.csv", full.names = TRUE)
 
@@ -145,7 +146,7 @@ if (file.exists(fl) != TRUE) {
   #   reframe(., n()) %>%
   #   print(n = Inf)
 
-  # Frac records ------------------------------------------------------------
+  ### Frac records ------------------------------------------------------------
 
   # This should take a moment!
 
@@ -170,7 +171,7 @@ if (file.exists(fl) != TRUE) {
     path = paste0(here(), "/frac_raw", "_", Sys.Date())
   )
 
-  # Disclosure --------------------------------------------------------------------
+  ### Disclosure --------------------------------------------------------------------
 
   file_list <- list.files(path = here("disc"), pattern = "^DisclosureList_\\d+.csv", full.names = TRUE)
 
@@ -192,16 +193,14 @@ if (file.exists(fl) != TRUE) {
     path = paste0(here(), "/disc_raw", "_", Sys.Date())
   )
 
-  rm(file_list)
-} else {
-  ### ELSE --------------------------------------------------------------------
-
+  rm(fl)
+}else{
+  rm(fl)
   disc_raw <- read_feather(list.files(pattern = "disc_raw"))
   frac_raw <- read_feather(list.files(pattern = "frac_raw"))
   water_raw <- read_feather(list.files(pattern = "water_raw"))
-}
 
-rm(fl)
+}
 
 # Cleaning ----------------------------------------------------------------
 
@@ -237,7 +236,10 @@ disc <- disc %>%
 
 rm(disc_bad, disc_raw)
 
-### Plot --------------------------------------------------------------------
+# Plot --------------------------------------------------------------------
+
+
+## Disclosures over time ---------------------------------------------------
 
 disc %>%
   mutate(year = year(job_start_date), .keep = "unused") %>%
@@ -248,7 +250,7 @@ disc %>%
   ggplot(.) +
   aes(x = year, y = count, color = state_name) +
   geom_point() +
-  # scale_y_log10() +
+  scale_y_log10() +
   geom_smooth(se = FALSE) +
   scale_fill_viridis_d(option = "viridis", direction = 1) +
   theme_classic() +
@@ -265,12 +267,11 @@ frac <- frac_raw %>%
   ) %>%
   filter(disclosure_id %in% disc$disclosure_id)
 
+# EDA ---------------------------------------------------------------------
+
 tx <- frac %>%
   filter(., year >= 2010 & state_name == "Texas") %>%
   filter(!is.na(ingredient_common_name))
-
-
-### EDA ---------------------------------------------------------------------
 
 tx_eda <- tx %>%
   select(
@@ -313,9 +314,9 @@ tx_eda <- tx %>%
   arrange(desc(numeric.n))
 
 
-### compound ----------------------------------------------------------------
+## compound ----------------------------------------------------------------
 
-#### ts ----------------------------------------------------------------------
+### ts ----------------------------------------------------------------------
 
 tx %>%
   filter(ingredient_common_name == "Hydrotreated light petroleum distillate") %>%
@@ -331,7 +332,7 @@ tx %>%
   )
 
 
-##### ts, a few compounds -----------------------------------------------------
+#### ts, a few compounds -----------------------------------------------------
 
 #Single plots
 
@@ -440,7 +441,6 @@ library(sf)
 library(mapview)
 #library(tigris)
 #library(tidycensus)
-
 
 tx_sf <- tx %>% 
   filter(ingredient_common_name %in% tx_compounds$ingredient_common_name) %>%
