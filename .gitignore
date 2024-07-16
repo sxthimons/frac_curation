@@ -34,10 +34,10 @@ po/*~
 # RStudio Connect folder
 rsconnect/
 disc
-disc_raw_2024-07-12
+disc_raw_*
 frac
 readme
 water
-water_raw_2024-07-12
-frac_raw_2024-07-12
+water_raw_*
+frac_raw_*
 frac_curation.Rproj
