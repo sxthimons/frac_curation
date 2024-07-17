@@ -415,8 +415,8 @@ tx %>%
 #### Seasonal ----------------------------------------------------------------
 
 tx %>%
-  #filter(ingredient_common_name == "Hydrotreated light petroleum distillate") %>%
-  filter(ingredient_common_name == "Water") %>%
+  filter(ingredient_common_name == "Hydrotreated light petroleum distillate") %>%
+  #filter(ingredient_common_name == "Water") %>%
   select(
     "job_start_date",
     "ingredient_common_name",
@@ -444,6 +444,7 @@ library(mapview)
 
 tx_sf <- tx %>% 
   filter(ingredient_common_name %in% tx_compounds$ingredient_common_name) %>%
+  
   select(
     operator_name,
     ingredient_common_name,
@@ -484,6 +485,12 @@ mapview(tx_sf, zcol = c(
 burst = FALSE,
 legend = TRUE, 
 popup = TRUE)  
+
+
+#Plotting all disclosures-------------
+
+
+
   
   
   
