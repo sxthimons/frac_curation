@@ -9,24 +9,23 @@
     'feather',
     'esquisse',
     'skimr',
-    'timetk'
-    #,'sf', #if plotting
-    #'mapview' # if plotting
+    'timetk',
+    'sf', #if plotting
+    'mapview' # if plotting
     )
   
   new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
   if(length(new.packages)) install.packages(new.packages)
+
+  lapply(list.of.packages, function(pkg) {
+    if (!require(pkg, character.only = TRUE)) {
+      #install.packages(pkg)
+      library(pkg, character.only = TRUE)
+    }
+  })
   
   rm(list.of.packages, new.packages)
   
-  library(here)
-  library(rio)
-  library(tidyverse)
-  library(janitor)
-  library(feather)
-  library(esquisse)
-  library(skimr)
-  library(timetk)
 
   # Custom func------
 
@@ -39,6 +38,7 @@
 
   skim_count <- skim_with(numeric = sfl(n = length, median = ~ median(.x, na.rm = T)))
 }
+
 # Test for previous work --------------------------------------------------
 
 fl <- list.files(pattern = "disc_raw_")
@@ -437,11 +437,6 @@ tx %>%
 
 # Mapping -----------------------------------------------------------------
 
-library(sf)
-library(mapview)
-#library(tigris)
-#library(tidycensus)
-
 tx_sf <- tx %>% 
   filter(ingredient_common_name %in% tx_compounds$ingredient_common_name) %>%
   
@@ -487,6 +482,7 @@ legend = TRUE,
 popup = TRUE)  
 
 
+<<<<<<< HEAD
 #Plotting all disclosures-------------
 
 
@@ -499,4 +495,41 @@ popup = TRUE)
   
   
   
+=======
+# All operators -----------------------------------------------------------
+# 
+# If there's time
+
+
+# library(leaflet)
+# library(leafgl)
+# library(colourvalues)
+# 
+# op_map <- 
+#   disc %>% 
+#   filter(!is.na(latitude) & !is.na(longitude)) %>% 
+#   filter(year(job_start_date) >= 2010 & !is.na(year(job_start_date))) %>% 
+#   mutate(
+#     year = as_factor(year(job_start_date)),
+#     year_col = (color_values(year))
+#     ) %>%  
+#   select(
+#     operator_name,
+#     state_name,
+#     #well_name,
+#     year,
+#     year_col,
+#     latitude,
+#     longitude
+#   ) %>% 
+#   #filter(state_name == 'Texas') %>% 
+#   #distinct(., .keep_all = T) %>% 
+#   sf::st_as_sf(., coords = c('longitude', 'latitude'), crs = 'EPSG:4326')
+# 
+# op_map %>% 
+# leaflet() %>% 
+#   leaflet::addProviderTiles(provider = providers$CartoDB.Positron) %>% 
+#   leafgl::addGlPoints(data = op_map, fillColor = 'year_col') %>% 
+#   leaflet::addLegend(., labels = ~unique(year), colors = ~unique(year_col))
+>>>>>>> de0663554380e76a306e0711bf97f6b98af437eb
   
